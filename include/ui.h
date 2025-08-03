@@ -5,6 +5,12 @@ typedef struct {
     char *uid;
 } Account;
 
+typedef struct {
+    int *id;
+    char **title;
+    int *media_count;
+} Favo;
+
 void ui_main(GtkApplication *app_bmg);
 GtkWidget *ui_source(GtkApplication *app_bmg);
 void bili_login(GtkWidget *widget, gpointer app);

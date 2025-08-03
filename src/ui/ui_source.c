@@ -11,6 +11,8 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
 {
     GtkWidget *box_source, *box_account, *box_btn, *center_box;
     GtkWidget *label_info, *btn_login, *btn_refresh;
+    GtkWidget *label_method, *box_ckbox, *ckbox_favo, *ckbox_bvid;
+    GtkWidget *box_load, *label_load, *box_entry, *entry_id, *entry_p, *box_btn_load, *btn_load, *label_path;
     GtkCssProvider *provider;
 
     box_source = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
@@ -38,7 +40,38 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     gtk_widget_set_margin_top(box_btn, 20);
     gtk_widget_set_margin_start(box_account, 20);
 
+    label_method = gtk_label_new("选择导入方式\n(Bvid/收藏夹)");
+    box_ckbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    ckbox_favo = gtk_check_button_new_with_label("收藏夹");
+    ckbox_bvid = gtk_check_button_new_with_label("Bvid");
+    gtk_check_button_set_group(GTK_CHECK_BUTTON(ckbox_favo), GTK_CHECK_BUTTON(ckbox_bvid));
+    gtk_box_append(GTK_BOX(box_ckbox), label_method);
+    gtk_box_append(GTK_BOX(box_ckbox), ckbox_bvid);
+    gtk_box_append(GTK_BOX(box_ckbox), ckbox_favo);
+
+    box_load = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    box_btn_load = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    box_entry = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    label_load = gtk_label_new("收藏夹/Bvid: \n分p(默认全选): ");
+    entry_id = gtk_entry_new();
+    entry_p = gtk_entry_new();
+    btn_load = gtk_button_new_with_label("导入");
+    label_path = gtk_label_new("(默认列表)");
+    gtk_widget_set_margin_end(btn_load, 8);
+    gtk_widget_set_margin_top(btn_load, 8);
+    gtk_widget_set_size_request(btn_load, 60, 30);
+    gtk_box_append(GTK_BOX(box_entry), entry_id);
+    gtk_box_append(GTK_BOX(box_entry), entry_p);
+    gtk_box_append(GTK_BOX(box_load), label_load);
+    gtk_widget_set_margin_top(box_entry, 10);
+    gtk_box_append(GTK_BOX(box_load), box_entry);
+    gtk_box_append(GTK_BOX(box_btn_load), btn_load);
+    gtk_box_append(GTK_BOX(box_btn_load), label_path);
+    gtk_box_append(GTK_BOX(box_load), box_btn_load);
+
     gtk_center_box_set_start_widget(GTK_CENTER_BOX(center_box), box_account);
+    gtk_center_box_set_center_widget(GTK_CENTER_BOX(center_box), box_ckbox);
+    gtk_center_box_set_end_widget(GTK_CENTER_BOX(center_box), box_load);
     gtk_box_append(GTK_BOX(box_source), center_box);
 
     gtk_widget_set_name(label_info, "label-info");

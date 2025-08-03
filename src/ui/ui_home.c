@@ -7,6 +7,7 @@ const int WIN_HEIGHT = 900;
 const char *APP_NAME = "Bili Music";
 
 Account *account;
+Favo *favo_s;
 
 void ui_main(GtkApplication *app_bmg)
 {
@@ -16,7 +17,13 @@ void ui_main(GtkApplication *app_bmg)
     GtkWidget *box_home;
 
     account = malloc(sizeof(Account));
+    favo_s = malloc(sizeof(Favo));
     api_parse_account();
+    api_init();
+    // int err = api_get_favo();
+    // if (err == 1) {
+    //     printf("Error(%d): Fail to get favo\n", err);
+    // }
 
     win_main = gtk_application_window_new(app_bmg);
     gtk_window_set_title(GTK_WINDOW(win_main), APP_NAME);
