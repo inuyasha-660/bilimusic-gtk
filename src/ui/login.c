@@ -21,31 +21,26 @@ void get_cookie(WebKitCookieManager *cookie_mgr, GAsyncResult *res)
         SoupCookie *soup_cookie = (SoupCookie *)cookie_l->data;
         if (!strcmp(soup_cookie_get_name(soup_cookie), "DedeUserID")) {
             const char *value = soup_cookie_get_value(soup_cookie);
-            account->DedeUserID = (char *)malloc(strlen(value) * sizeof(char));
             account->DedeUserID = strdup(value);
             continue;
         }
         if (!strcmp(soup_cookie_get_name(soup_cookie), "DedeUserID__ckMd5")) {
             const char *value = soup_cookie_get_value(soup_cookie);
-            account->DedeUserID__ckMd5 = (char *)malloc(strlen(value) * sizeof(char));
             account->DedeUserID__ckMd5 = strdup(value);
             continue;
         }
         if (!strcmp(soup_cookie_get_name(soup_cookie), "SESSDATA")) {
             const char *value = soup_cookie_get_value(soup_cookie);
-            account->SESSDATA = (char *)malloc(strlen(value) * sizeof(char));
             account->SESSDATA = strdup(value);
             continue;
         }
         if (!strcmp(soup_cookie_get_name(soup_cookie), "bili_jct")) {
             const char *value = soup_cookie_get_value(soup_cookie);
-            account->bili_jct = (char *)malloc(strlen(value) * sizeof(char));
             account->bili_jct = strdup(value);
             continue;
         }
         if (!strcmp(soup_cookie_get_name(soup_cookie), "sid")) {
             const char *value = soup_cookie_get_value(soup_cookie);
-            account->sid = (char *)malloc(strlen(value) * sizeof(char));
             account->sid = strdup(value);
             continue;
         }

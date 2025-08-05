@@ -79,7 +79,8 @@ int api_get_favo()
         res = curl_easy_perform(Curl_bili);
 
         curl_easy_cleanup(Curl_bili);
-
+        free(cookie);
+        free(url_favo);
         return res;
     }
 
@@ -127,6 +128,7 @@ int api_parse_account()
         free(file_str);
         fclose(file);
         cJSON_Delete(json);
+        free(file_str);
         return 0;
     }
 
@@ -213,8 +215,6 @@ size_t api_rw_basic_info_from_buffer(void *buffer, size_t size, size_t nmemb, vo
         }
 
         char *mid_str = int_to_str(mid->valueint);
-        account->face = (char *)malloc(strlen(face->valuestring) * sizeof(char));
-        account->mid = (char *)malloc(strlen(mid_str) * sizeof(char));
         account->face = strdup(face->valuestring);
         account->mid = strdup(mid_str);
         cJSON_Delete(json_net);
@@ -262,6 +262,7 @@ int api_get_basic_info_net()
         res = curl_easy_perform(Curl_bili);
 
         curl_easy_cleanup(Curl_bili);
+        free(cookie);
         return res;
     }
 
