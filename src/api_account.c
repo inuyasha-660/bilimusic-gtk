@@ -3,20 +3,25 @@
 #include <cJSON.h>
 #include <curl/curl.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 extern Account *account;
 extern Favo *favo_s;
-CURL *Curl_login;
+CURL *Curl_bili;
 
 // 获取收藏夹列表
 const char *API_GET_FAVO = "https://api.bilibili.com/x/v3/fav/folder/created/list-all?up_mid=";
+// 获取账号基本信息
+const char *API_GET_BASIC_INFO = "https://api.bilibili.com/x/web-interface/nav";
 
-const char *PATH_ACCOUNT = "./account.json";
+const char *PATH_ACCOUNT = "./bilimusic/account.json";
+static const char *PATH_AVATAR = "./bilimusic/avatar.jpg";
 
 void api_init()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    Curl_login = curl_easy_init();
+    Curl_bili = curl_easy_init();
 }
 
 size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
@@ -51,14 +56,17 @@ size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
 
 int api_get_favo()
 {
-    if (Curl_login) {
+    Curl_bili = curl_easy_init();
+    if (Curl_bili) {
         CURLcode res;
-        char *url_favo = (char *)malloc((66 + sizeof(account->uid)) * sizeof(char));
-        sprintf(url_favo, "%s%s", API_GET_FAVO, account->uid);
+        char *url_favo = (char *)malloc((66 + sizeof(account->mid)) * sizeof(char));
+        sprintf(url_favo, "%s%s", API_GET_FAVO, account->mid);
 
-        curl_easy_setopt(Curl_login, CURLOPT_WRITEFUNCTION, &api_read_favo);
-        curl_easy_setopt(Curl_login, CURLOPT_URL, url_favo);
-        res = curl_easy_perform(Curl_login);
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_read_favo);
+        curl_easy_setopt(Curl_bili, CURLOPT_URL, url_favo);
+        res = curl_easy_perform(Curl_bili);
+
+        curl_easy_cleanup(Curl_bili);
 
         return res;
     }
@@ -83,14 +91,26 @@ int api_parse_account()
         file_str[inx] = '\0';
 
         cJSON *json = cJSON_Parse(file_str);
-        cJSON *uid = cJSON_GetObjectItemCaseSensitive(json, "uid");
+        cJSON *mid = cJSON_GetObjectItemCaseSensitive(json, "mid");
+        cJSON *DedeUserID = cJSON_GetObjectItemCaseSensitive(json, "DedeUserID");
+        cJSON *DedeUserID__ckMd5 = cJSON_GetObjectItemCaseSensitive(json, "DedeUserID__ckMd5");
+        cJSON *SESSDATA = cJSON_GetObjectItemCaseSensitive(json, "SESSDATA");
+        cJSON *bili_jct = cJSON_GetObjectItemCaseSensitive(json, "bili_jct");
+        cJSON *sid = cJSON_GetObjectItemCaseSensitive(json, "sid");
 
-        if (!cJSON_IsString(uid)) {
+        if (!cJSON_IsString(mid) || !cJSON_IsString(DedeUserID) || !cJSON_IsString(DedeUserID__ckMd5) ||
+            !cJSON_IsString(SESSDATA) || !cJSON_IsString(bili_jct) || !cJSON_IsString(sid)) {
+            puts("Error: Parse bilimusic/account.json error");
             goto end;
         }
 
-        account->uid = strdup(uid->valuestring);
+        account->mid = strdup(mid->valuestring);
         account->islogin = 1;
+        account->bili_jct = strdup(bili_jct->valuestring);
+        account->DedeUserID = strdup(DedeUserID->valuestring);
+        account->DedeUserID__ckMd5 = strdup(DedeUserID__ckMd5->valuestring);
+        account->sid = strdup(sid->valuestring);
+        account->SESSDATA = strdup(SESSDATA->valuestring);
 
         free(file_str);
         fclose(file);
@@ -99,28 +119,155 @@ int api_parse_account()
     }
 
 end:
-    account->uid = "未登录";
+    account->mid = "未登录";
     account->islogin = 0;
+    account->bili_jct = NULL;
+    account->DedeUserID = NULL;
+    account->DedeUserID__ckMd5 = NULL;
+    account->sid = NULL;
+    account->SESSDATA = NULL;
 
     return 1;
 }
 
-// 返回错误码, 0: 无错误 1: 账号文件写入错误
-int api_login(const char *uid_str)
+void api_get_avatar()
 {
-    // printf("INFO: Write uid(%s) to account.json\n", uid_str);
+    if (account->face == NULL) {
+        puts("Error: account->face is NULL");
+        return;
+    }
+    printf("INFO: Get %s\n", account->face);
+    Curl_bili = curl_easy_init();
+    if (Curl_bili) {
+        FILE *img_f = fopen(PATH_AVATAR, "wb");
+        if (img_f == NULL) {
+            puts("Error: open avatar.jpg fail");
+        }
 
-    // FILE *file = fopen(PATH_ACCOUNT, "w+");
-    // if (file != NULL) {
-    //     cJSON *root = cJSON_CreateObject();
-    //     cJSON_AddItemToObject(root, "uid", cJSON_CreateString(uid_str));
+        CURLcode res;
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEDATA, img_f);
+        curl_easy_setopt(Curl_bili, CURLOPT_URL, account->face);
 
-    //     fprintf(file, "%s", cJSON_Print(root));
-    // } else {
-    //     return 1;
-    // }
+        res = curl_easy_perform(Curl_bili);
+        if (res != CURLE_OK) {
+            printf("-> Failed(%d)\n", res);
+            printf("Error: %s\n", curl_easy_strerror(res));
+        }
 
-    // fclose(file);
+        curl_easy_cleanup(Curl_bili);
+        fclose(img_f);
+        return;
+    }
+    puts("Error: Curl_bili error");
+}
 
-    return 0;
+char *int_to_str(int num)
+{
+    int len = 0, num_c = num;
+    do {
+        num_c /= 10;
+        len++;
+    } while (num_c > 10);
+
+    char *ret = (char *)malloc((len + 2) * sizeof(char));
+    sprintf(ret, "%d", num);
+    ret[len + 2] = '\0';
+
+    return ret;
+}
+
+size_t api_rw_basic_info_from_buffer(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+    char *res_info = (char *)buffer;
+    mkdir("./bilimusic", S_IRWXU | S_IRWXG | S_IRWXO);
+    FILE *file = fopen(PATH_ACCOUNT, "w+");
+    if (file != NULL) {
+        cJSON *data, *face, *mid;
+        cJSON *json_net = cJSON_Parse(res_info);
+        if (json_net == NULL) {
+            puts("Error: Parse account json error");
+            cJSON_Delete(json_net);
+            goto end;
+        }
+
+        data = cJSON_GetObjectItemCaseSensitive(json_net, "data");
+        if (data == NULL) {
+            puts("Error: read account data error");
+            cJSON_Delete(json_net);
+            goto end;
+        }
+        face = cJSON_GetObjectItemCaseSensitive(data, "face");
+        if (face == NULL) {
+            puts("Error: read account face error");
+            cJSON_Delete(json_net);
+            goto end;
+        }
+        mid = cJSON_GetObjectItemCaseSensitive(data, "mid");
+        if (mid == NULL) {
+            puts("Error: read account mid error");
+            cJSON_Delete(json_net);
+            goto end;
+        }
+
+        if (!cJSON_IsString(face) || !cJSON_IsNumber(mid)) {
+            puts("Error: get face and mid error");
+            cJSON_Delete(json_net);
+            goto end;
+        }
+
+        char *mid_str = int_to_str(mid->valueint);
+        account->face = (char *)malloc(strlen(face->valuestring) * sizeof(char));
+        account->mid = (char *)malloc(strlen(mid_str) * sizeof(char));
+        account->face = strdup(face->valuestring);
+        account->mid = strdup(mid_str);
+        cJSON_Delete(json_net);
+
+        cJSON *root;
+        root = cJSON_CreateObject();
+        cJSON_AddItemToObject(root, "mid", cJSON_CreateString(account->mid));
+        cJSON_AddItemToObject(root, "DedeUserID", cJSON_CreateString(account->DedeUserID));
+        cJSON_AddItemToObject(root, "DedeUserID__ckMd5", cJSON_CreateString(account->DedeUserID__ckMd5));
+        cJSON_AddItemToObject(root, "SESSDATA", cJSON_CreateString(account->SESSDATA));
+        cJSON_AddItemToObject(root, "bili_jct", cJSON_CreateString(account->bili_jct));
+        cJSON_AddItemToObject(root, "sid", cJSON_CreateString(account->sid));
+
+        fprintf(file, "%s", cJSON_Print(root));
+        api_get_avatar();
+        api_get_favo();
+
+        fclose(file);
+        cJSON_Delete(root);
+        return 0;
+    }
+
+end:
+    account->mid = NULL;
+    account->face = NULL;
+
+    return 1;
+}
+
+int api_get_basic_info_net()
+{
+    if (account->SESSDATA == NULL) {
+        puts("Error: SESSDATA is NULL");
+        return 1;
+    }
+    Curl_bili = curl_easy_init();
+    if (Curl_bili) {
+        int res;
+        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
+
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_rw_basic_info_from_buffer);
+        curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
+        curl_easy_setopt(Curl_bili, CURLOPT_URL, API_GET_BASIC_INFO);
+        res = curl_easy_perform(Curl_bili);
+
+        curl_easy_cleanup(Curl_bili);
+        return res;
+    }
+
+    puts("Error: api_get_basic_info return code 1");
+    return 1;
 }

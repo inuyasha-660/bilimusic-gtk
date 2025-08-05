@@ -7,10 +7,12 @@
 
 extern Account *account;
 
+const char *PATH_AVATAR = "bilimusic/avatar.jpg";
+
 GtkWidget *ui_source(GtkApplication *app_bmg)
 {
     GtkWidget *box_source, *box_account, *box_btn, *center_box;
-    GtkWidget *label_info, *btn_login, *btn_refresh;
+    GtkWidget *img_avatar, *label_info, *btn_login, *btn_refresh;
     GtkWidget *label_method, *box_ckbox, *ckbox_favo, *ckbox_bvid;
     GtkWidget *box_load, *label_load, *box_entry, *entry_id, *entry_p, *box_btn_load, *btn_load, *label_path;
     GtkCssProvider *provider;
@@ -21,17 +23,21 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     box_btn = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
 
     if (account->islogin) {
-        char *uid_label = (char *)malloc((6 + sizeof(account->uid)) * sizeof(char));
-        sprintf(uid_label, "UID: \n%s", account->uid);
+        img_avatar = gtk_image_new_from_file(PATH_AVATAR);
+        char *uid_label = (char *)malloc((6 + sizeof(account->mid)) * sizeof(char));
+        sprintf(uid_label, "UID: \n%s", account->mid);
 
         label_info = gtk_label_new(uid_label);
         btn_login = gtk_button_new_with_label("重新登陆");
     } else {
+        img_avatar = gtk_image_new_from_icon_name("user-default");
         label_info = gtk_label_new("未登录\nUID: -");
         btn_login = gtk_button_new_with_label("登陆");
     }
     btn_refresh = gtk_button_new_with_label("刷新");
 
+    gtk_widget_set_size_request(img_avatar, 60, 60);
+    gtk_box_append(GTK_BOX(box_account), img_avatar);
     gtk_box_append(GTK_BOX(box_account), label_info);
     gtk_box_append(GTK_BOX(box_btn), btn_login);
     gtk_box_append(GTK_BOX(box_btn), btn_refresh);
@@ -84,7 +90,7 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(btn_login, "clicked", G_CALLBACK(bili_login), app_bmg);
-    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_parse_account), NULL);
+    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info_net), NULL);
 
     return box_source;
 }

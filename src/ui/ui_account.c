@@ -1,6 +1,8 @@
 #include "../../include/api.h"
 #include "../../include/ui.h"
+#include "libsoup/soup-cookie.h"
 #include <gtk/gtk.h>
+#include <string.h>
 #include <webkit/webkit.h>
 
 // 跳转登陆界面
@@ -10,31 +12,48 @@ const char *APP_LOGIN_NAME = "Bili Login";
 const int WIN_LOGIN_WIDTH = 1350;
 const int WIN_LOGIN_HEIGHT = 850;
 
-GtkWidget *Label_log;
-
-int Status_login; // 1: 登录完成(点击下一步) 0: 未点击
-
-void login_check(GtkWidget *widget, gpointer entry)
-{
-    const char *uid = gtk_editable_get_text((GTK_EDITABLE((GtkWidget *)entry)));
-
-    int err = api_login(uid);
-    if (err) {
-        gtk_label_set_label(GTK_LABEL(Label_log), "返回: 登陆错误(1)");
-    } else {
-        gtk_label_set_label(GTK_LABEL(Label_log), "返回: 登陆成功");
-    }
-}
+extern Account *account;
 
 void get_cookie(WebKitCookieManager *cookie_mgr, GAsyncResult *res)
 {
     GList *cookit_ls = webkit_cookie_manager_get_cookies_finish(cookie_mgr, res, NULL);
+
     for (GList *cookie_l = cookit_ls; cookie_l != NULL; cookie_l = cookie_l->next) {
         SoupCookie *soup_cookie = (SoupCookie *)cookie_l->data;
-        printf("Cookie: ");
-        printf("%s=%s\n", soup_cookie_get_name(soup_cookie), soup_cookie_get_value(soup_cookie));
+        if (!strcmp(soup_cookie_get_name(soup_cookie), "DedeUserID")) {
+            const char *value = soup_cookie_get_value(soup_cookie);
+            account->DedeUserID = (char *)malloc(strlen(value) * sizeof(char));
+            account->DedeUserID = strdup(value);
+            continue;
+        }
+        if (!strcmp(soup_cookie_get_name(soup_cookie), "DedeUserID__ckMd5")) {
+            const char *value = soup_cookie_get_value(soup_cookie);
+            account->DedeUserID__ckMd5 = (char *)malloc(strlen(value) * sizeof(char));
+            account->DedeUserID__ckMd5 = strdup(value);
+            continue;
+        }
+        if (!strcmp(soup_cookie_get_name(soup_cookie), "SESSDATA")) {
+            const char *value = soup_cookie_get_value(soup_cookie);
+            account->SESSDATA = (char *)malloc(strlen(value) * sizeof(char));
+            account->SESSDATA = strdup(value);
+            continue;
+        }
+        if (!strcmp(soup_cookie_get_name(soup_cookie), "bili_jct")) {
+            const char *value = soup_cookie_get_value(soup_cookie);
+            account->bili_jct = (char *)malloc(strlen(value) * sizeof(char));
+            account->bili_jct = strdup(value);
+            continue;
+        }
+        if (!strcmp(soup_cookie_get_name(soup_cookie), "sid")) {
+            const char *value = soup_cookie_get_value(soup_cookie);
+            account->sid = (char *)malloc(strlen(value) * sizeof(char));
+            account->sid = strdup(value);
+            continue;
+        }
     }
     g_list_free(cookit_ls);
+
+    api_get_basic_info_net();
 }
 
 void load_changed(GtkWidget *widget)
@@ -44,8 +63,6 @@ void load_changed(GtkWidget *widget)
 
     webkit_cookie_manager_get_all_cookies(cookie_mgr, NULL, (GAsyncReadyCallback)get_cookie, NULL);
 }
-
-void change_login_status() { Status_login = 1; }
 
 void bili_login(GtkWidget *widget, gpointer app)
 {

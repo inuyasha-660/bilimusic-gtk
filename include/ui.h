@@ -2,7 +2,13 @@
 
 typedef struct {
     int islogin; // 1: 已登陆 0: 未登录
-    char *uid;
+    char *mid;
+    char *face;
+    char *DedeUserID;
+    char *DedeUserID__ckMd5;
+    char *SESSDATA;
+    char *bili_jct;
+    char *sid;
 } Account;
 
 typedef struct {
