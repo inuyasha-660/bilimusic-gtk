@@ -12,9 +12,9 @@ typedef struct {
 } Account;
 
 typedef struct {
-    int *id;
+    char **id;
     char **title;
-    int *media_count;
+    char *media_count;
 } Favo;
 
 void ui_main(GtkApplication *app_bmg);

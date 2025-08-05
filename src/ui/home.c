@@ -1,5 +1,5 @@
-#include "../../include/api.h"
-#include "../../include/ui.h"
+#include "include/api.h"
+#include "include/ui.h"
 #include <gtk/gtk.h>
 
 const int WIN_WIDTH = 1550;
@@ -20,10 +20,6 @@ void ui_main(GtkApplication *app_bmg)
     favo_s = malloc(sizeof(Favo));
     api_parse_account();
     api_init();
-    // int err = api_get_favo();
-    // if (err == 1) {
-    //     printf("Error(%d): Fail to get favo\n", err);
-    // }
 
     win_main = gtk_application_window_new(app_bmg);
     gtk_window_set_title(GTK_WINDOW(win_main), APP_NAME);

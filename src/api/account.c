@@ -1,5 +1,5 @@
-#include "../../include/api.h"
-#include "../../include/ui.h"
+#include "include/api.h"
+#include "include/ui.h"
 #include <cJSON.h>
 #include <curl/curl.h>
 #include <stdio.h>
@@ -24,16 +24,30 @@ void api_init()
     Curl_bili = curl_easy_init();
 }
 
+char *int_to_str(int num)
+{
+    int len = 0, num_c = num;
+    do {
+        num_c /= 10;
+        len++;
+    } while (num_c > 10);
+
+    char *ret = (char *)malloc((len + 2) * sizeof(char));
+    sprintf(ret, "%d", num);
+    ret[len + 2] = '\0';
+
+    return ret;
+}
+
 size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *res_str = (char *)buffer;
     cJSON *data, *list, *favo, *id, *title, *media_count;
-    puts(res_str);
+
     cJSON *res_json = cJSON_Parse(res_str);
     data = cJSON_GetObjectItemCaseSensitive(res_json, "data");
     list = cJSON_GetObjectItemCaseSensitive(data, "list");
 
-    int inx = 0;
     cJSON_ArrayForEach(favo, list)
     {
         id = cJSON_GetObjectItemCaseSensitive(favo, "id");
@@ -44,11 +58,6 @@ size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
             cJSON_Delete(res_json);
             return 1;
         }
-        printf("%d\n", id->valueint);
-        favo_s->id = (int *)realloc(favo_s->id, (inx + 1) * sizeof(int));
-
-        favo_s->id[inx] = id->valueint;
-        inx++;
     }
 
     return 0;
@@ -59,10 +68,13 @@ int api_get_favo()
     Curl_bili = curl_easy_init();
     if (Curl_bili) {
         CURLcode res;
+        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
         char *url_favo = (char *)malloc((66 + sizeof(account->mid)) * sizeof(char));
         sprintf(url_favo, "%s%s", API_GET_FAVO, account->mid);
 
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_read_favo);
+        curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, url_favo);
         res = curl_easy_perform(Curl_bili);
 
@@ -159,21 +171,6 @@ void api_get_avatar()
         return;
     }
     puts("Error: Curl_bili error");
-}
-
-char *int_to_str(int num)
-{
-    int len = 0, num_c = num;
-    do {
-        num_c /= 10;
-        len++;
-    } while (num_c > 10);
-
-    char *ret = (char *)malloc((len + 2) * sizeof(char));
-    sprintf(ret, "%d", num);
-    ret[len + 2] = '\0';
-
-    return ret;
 }
 
 size_t api_rw_basic_info_from_buffer(void *buffer, size_t size, size_t nmemb, void *userp)

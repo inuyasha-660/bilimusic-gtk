@@ -1,6 +1,5 @@
-#include "../../include/api.h"
-#include "../include/ui.h"
-#include "gtk/gtkshortcut.h"
+#include "include/api.h"
+#include "include/ui.h"
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +22,10 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     box_btn = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
 
     if (account->islogin) {
+        api_get_favo();
+    }
+
+    if (account->islogin) {
         img_avatar = gtk_image_new_from_file(PATH_AVATAR);
         char *uid_label = (char *)malloc((6 + sizeof(account->mid)) * sizeof(char));
         sprintf(uid_label, "UID: \n%s", account->mid);
@@ -30,7 +33,7 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
         label_info = gtk_label_new(uid_label);
         btn_login = gtk_button_new_with_label("重新登陆");
     } else {
-        img_avatar = gtk_image_new_from_icon_name("user-default");
+        img_avatar = gtk_image_new_from_icon_name("avatar-default");
         label_info = gtk_label_new("未登录\nUID: -");
         btn_login = gtk_button_new_with_label("登陆");
     }

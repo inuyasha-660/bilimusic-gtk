@@ -1,4 +1,4 @@
-#include "../include/ui.h"
+#include "include/ui.h"
 #include <adwaita.h>
 #include <gtk/gtk.h>
 

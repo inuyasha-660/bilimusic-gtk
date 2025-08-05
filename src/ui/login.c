@@ -1,6 +1,5 @@
-#include "../../include/api.h"
-#include "../../include/ui.h"
-#include "libsoup/soup-cookie.h"
+#include "include/api.h"
+#include "include/ui.h"
 #include <gtk/gtk.h>
 #include <string.h>
 #include <webkit/webkit.h>
