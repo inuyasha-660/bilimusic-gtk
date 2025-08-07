@@ -1,12 +1,41 @@
+#include "glib.h"
+#include "glibconfig.h"
 #include "include/api.h"
 #include "include/ui.h"
 #include <gtk/gtk.h>
-#include <stdio.h>
 #include <string.h>
 
 extern Account *account;
+extern Favo *favo_s;
+GtkWidget *Box_favo;
 
 const char *PATH_AVATAR = "bilimusic/avatar.jpg";
+
+gboolean api_import_favo_init(GtkWidget *btn_add, gpointer data)
+{
+    g_thread_new("import-favo", (GThreadFunc)api_import_favo, data);
+    return FALSE;
+}
+
+gboolean api_get_favo_update_widget()
+{
+    for (int i = 0; i < favo_s->inx; i++) {
+        GtkWidget *box_signal_favo = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 20);
+        GtkWidget *btn_add = gtk_button_new_from_icon_name("list-add");
+        char *favo_info =
+            (char *)malloc(strlen((favo_s->title[i]) + 3 + strlen(favo_s->media_count[i])) * sizeof(char));
+        sprintf(favo_info, "%s [%s]", favo_s->title[i], favo_s->media_count[i]);
+        GtkWidget *label_info = gtk_label_new(favo_info);
+
+        g_signal_connect(btn_add, "clicked", G_CALLBACK(api_import_favo_init), GINT_TO_POINTER(i));
+
+        gtk_box_append(GTK_BOX(box_signal_favo), btn_add);
+        gtk_box_append(GTK_BOX(box_signal_favo), label_info);
+        gtk_widget_set_name(box_signal_favo, "sinal-favo");
+        gtk_box_append(GTK_BOX(Box_favo), box_signal_favo);
+    }
+    return FALSE;
+}
 
 GtkWidget *ui_source(GtkApplication *app_bmg)
 {
@@ -14,16 +43,24 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     GtkWidget *img_avatar, *label_info, *btn_login, *btn_refresh;
     GtkWidget *label_method, *box_ckbox, *ckbox_favo, *ckbox_bvid;
     GtkWidget *box_load, *label_load, *box_entry, *entry_id, *entry_p, *box_btn_load, *btn_load, *label_path;
+    GtkWidget *scroll_favo;
     GtkCssProvider *provider;
 
     box_source = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     center_box = gtk_center_box_new();
     box_account = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 20);
     box_btn = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    Box_favo = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    scroll_favo = gtk_scrolled_window_new();
 
-    if (account->islogin) {
-        api_get_favo();
-    }
+    gtk_widget_set_margin_top(scroll_favo, 20);
+    gtk_widget_set_margin_end(scroll_favo, 20);
+    gtk_widget_set_margin_start(scroll_favo, 20);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll_favo), Box_favo);
+    gtk_widget_set_vexpand(scroll_favo, TRUE);
+
+    puts("INFO: Create a new thread to get favorites");
+    g_thread_new("get-favo", (GThreadFunc)api_get_favo, NULL);
 
     if (account->islogin) {
         img_avatar = gtk_image_new_from_file(PATH_AVATAR);
@@ -82,12 +119,17 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     gtk_center_box_set_center_widget(GTK_CENTER_BOX(center_box), box_ckbox);
     gtk_center_box_set_end_widget(GTK_CENTER_BOX(center_box), box_load);
     gtk_box_append(GTK_BOX(box_source), center_box);
+    gtk_box_append(GTK_BOX(box_source), scroll_favo);
 
     gtk_widget_set_name(label_info, "label-info");
 
     provider = gtk_css_provider_new();
     gtk_css_provider_load_from_string(provider, "#label-info {"
                                                 " font-size: 20px;"
+                                                " }"
+                                                " #sinal-favo {"
+                                                " font-size: 20px;"
+                                                " min-height: 45px;"
                                                 " }");
     gtk_style_context_add_provider_for_display(gdk_display_get_default(), GTK_STYLE_PROVIDER(provider),
                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);

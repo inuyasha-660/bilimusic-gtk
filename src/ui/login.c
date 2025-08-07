@@ -15,6 +15,7 @@ extern Account *account;
 
 void get_cookie(WebKitCookieManager *cookie_mgr, GAsyncResult *res)
 {
+    puts("INFO: Start reading cookie");
     GList *cookit_ls = webkit_cookie_manager_get_cookies_finish(cookie_mgr, res, NULL);
 
     for (GList *cookie_l = cookit_ls; cookie_l != NULL; cookie_l = cookie_l->next) {

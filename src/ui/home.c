@@ -18,7 +18,13 @@ void ui_main(GtkApplication *app_bmg)
 
     account = malloc(sizeof(Account));
     favo_s = malloc(sizeof(Favo));
+    favo_s->id = NULL;
+    favo_s->title = NULL;
+    favo_s->media_count = NULL;
+    favo_s->inx = 0;
+    puts("INFO: Parse bilibili/account.json");
     api_parse_account();
+    puts("INFO: Initialize curl");
     api_init();
 
     win_main = gtk_application_window_new(app_bmg);

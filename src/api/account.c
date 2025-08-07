@@ -2,16 +2,20 @@
 #include "include/ui.h"
 #include <cJSON.h>
 #include <curl/curl.h>
+#include <math.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/types.h>
+#include <unistd.h>
 
 extern Account *account;
 extern Favo *favo_s;
+extern GtkWidget *Box_favo;
 CURL *Curl_bili;
 
 // 获取收藏夹列表
 const char *API_GET_FAVO = "https://api.bilibili.com/x/v3/fav/folder/created/list-all?up_mid=";
+// 获取收藏夹信息 pn: 页数 ps: 每页视频个数 max_ps: 40
+const char *API_GET_FAVO_INFO = "https://api.bilibili.com/x/v3/fav/resource/list?media_id=";
 // 获取账号基本信息
 const char *API_GET_BASIC_INFO = "https://api.bilibili.com/x/web-interface/nav";
 
@@ -24,22 +28,57 @@ void api_init()
     Curl_bili = curl_easy_init();
 }
 
-char *int_to_str(int num)
+char *int_to_str(long num)
 {
-    int len = 0, num_c = num;
+    int len = 0;
+    long num_c = num;
     do {
         num_c /= 10;
         len++;
     } while (num_c > 10);
 
     char *ret = (char *)malloc((len + 2) * sizeof(char));
-    sprintf(ret, "%d", num);
+    sprintf(ret, "%ld", num);
     ret[len + 2] = '\0';
 
     return ret;
 }
 
-size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
+size_t api_import_favo_finish(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+    char *res = (char *)buffer;
+
+    return size;
+}
+
+gboolean api_import_favo(gpointer data)
+{
+    int inx = GPOINTER_TO_INT(data);
+
+    Curl_bili = curl_easy_init();
+    if (Curl_bili) {
+        int total_pg = (int)ceil(atoi(favo_s->media_count[inx]) / 40.0);
+        for (int i = 1; i <= total_pg; i++) {
+            char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+            sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
+            char *url_signal_favo =
+                (char *)malloc((strlen(API_GET_FAVO_INFO) + strlen(favo_s->id[inx]) + 12) * sizeof(char));
+            sprintf(url_signal_favo, "%s%s&pn=%d&ps=40", API_GET_FAVO_INFO, favo_s->id[inx], i);
+
+            printf("INFO: Get(%d/%d) %s\n", i, total_pg, url_signal_favo);
+            curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_import_favo_finish);
+            curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
+            curl_easy_setopt(Curl_bili, CURLOPT_URL, url_signal_favo);
+            curl_easy_perform(Curl_bili);
+        }
+    }
+
+    curl_easy_cleanup(Curl_bili);
+
+    return FALSE;
+}
+
+size_t api_get_favo_finish(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *res_str = (char *)buffer;
     cJSON *data, *list, *favo, *id, *title, *media_count;
@@ -48,6 +87,7 @@ size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
     data = cJSON_GetObjectItemCaseSensitive(res_json, "data");
     list = cJSON_GetObjectItemCaseSensitive(data, "list");
 
+    int inx = 0;
     cJSON_ArrayForEach(favo, list)
     {
         id = cJSON_GetObjectItemCaseSensitive(favo, "id");
@@ -58,33 +98,51 @@ size_t api_read_favo(void *buffer, size_t size, size_t nmemb, void *userp)
             cJSON_Delete(res_json);
             return 1;
         }
-    }
 
-    return 0;
+        char *id_str = int_to_str((long)id->valuedouble);
+        char *meida_count_id = int_to_str((long)media_count->valuedouble);
+        favo_s->id = (char **)realloc(favo_s->id, (inx + 1) * sizeof(char *));
+        favo_s->title = (char **)realloc(favo_s->title, (inx + 1) * sizeof(char *));
+        favo_s->media_count = (char **)realloc(favo_s->media_count, (inx + 1) * sizeof(char *));
+
+        favo_s->id[inx] = strdup(id_str);
+        favo_s->title[inx] = strdup(title->valuestring);
+        favo_s->media_count[inx] = strdup(meida_count_id);
+
+        inx++;
+    }
+    favo_s->inx = inx;
+    g_idle_add((GSourceFunc)api_get_favo_update_widget, NULL);
+
+    cJSON_Delete(res_json);
+    return size;
 }
 
-int api_get_favo()
+gboolean api_get_favo()
 {
+    if (!account->islogin) {
+        return FALSE;
+    }
+
     Curl_bili = curl_easy_init();
     if (Curl_bili) {
-        CURLcode res;
         char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
         sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
         char *url_favo = (char *)malloc((66 + sizeof(account->mid)) * sizeof(char));
         sprintf(url_favo, "%s%s", API_GET_FAVO, account->mid);
 
-        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_read_favo);
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_get_favo_finish);
         curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, url_favo);
-        res = curl_easy_perform(Curl_bili);
+        curl_easy_perform(Curl_bili);
 
         curl_easy_cleanup(Curl_bili);
         free(cookie);
         free(url_favo);
-        return res;
+        return FALSE;
     }
 
-    return 1;
+    return FALSE;
 }
 
 int api_parse_account()
@@ -125,7 +183,6 @@ int api_parse_account()
         account->sid = strdup(sid->valuestring);
         account->SESSDATA = strdup(SESSDATA->valuestring);
 
-        free(file_str);
         fclose(file);
         cJSON_Delete(json);
         free(file_str);
@@ -162,6 +219,7 @@ void api_get_avatar()
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEDATA, img_f);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, account->face);
 
+        printf("INFO: Get(Avatar): %s", account->face);
         res = curl_easy_perform(Curl_bili);
         if (res != CURLE_OK) {
             printf("-> Failed(%d)\n", res);
@@ -175,7 +233,7 @@ void api_get_avatar()
     puts("Error: Curl_bili error");
 }
 
-size_t api_rw_basic_info_from_buffer(void *buffer, size_t size, size_t nmemb, void *userp)
+size_t api_get_basic_info_finish(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *res_info = (char *)buffer;
     mkdir("./bilimusic", S_IRWXU | S_IRWXG | S_IRWXO);
@@ -234,7 +292,8 @@ size_t api_rw_basic_info_from_buffer(void *buffer, size_t size, size_t nmemb, vo
 
         fclose(file);
         cJSON_Delete(root);
-        return 0;
+        free(mid_str);
+        return size;
     }
 
 end:
@@ -256,7 +315,8 @@ int api_get_basic_info_net()
         char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
         sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
 
-        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_rw_basic_info_from_buffer);
+        printf("INFO: Get(Basic information): %s", API_GET_BASIC_INFO);
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_get_basic_info_finish);
         curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, API_GET_BASIC_INFO);
         res = curl_easy_perform(Curl_bili);

@@ -14,9 +14,11 @@ typedef struct {
 typedef struct {
     char **id;
     char **title;
-    char *media_count;
+    char **media_count;
+    int inx;
 } Favo;
 
 void ui_main(GtkApplication *app_bmg);
 GtkWidget *ui_source(GtkApplication *app_bmg);
 void bili_login(GtkWidget *widget, gpointer app);
+gboolean api_get_favo_update_widget();
