@@ -13,6 +13,7 @@ cookie 保存于``./bilimusic/account.json``
 
 ## 导入收藏夹
 手动导入需要确保目标收藏夹是公开的
+
 所有收藏夹将保存于``./bilimusic/favo/<fid>.json``
 
 ## 编译
