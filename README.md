@@ -1,4 +1,4 @@
-## bilimusic-gtk
+# bilimusic-gtk
 
 ## 登录
 在``音乐源``中点击``登录``打开web登录，登录完成后点击``下一步``，将读取 bilibili 设置的 cookie
