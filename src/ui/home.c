@@ -8,6 +8,7 @@ const char *APP_NAME = "Bili Music";
 
 Account *account;
 Favo *favo_s;
+FavoJson *favo_json;
 
 void ui_main(GtkApplication *app_bmg)
 {
@@ -22,6 +23,12 @@ void ui_main(GtkApplication *app_bmg)
     favo_s->title = NULL;
     favo_s->media_count = NULL;
     favo_s->inx = 0;
+    favo_json = malloc(sizeof(FavoJson));
+    favo_json->bvid = NULL;
+    favo_json->page = NULL;
+    favo_json->title = NULL;
+    favo_json->upper_name = NULL;
+    favo_json->num = 0;
     puts("INFO: Parse bilibili/account.json");
     api_parse_account();
     puts("INFO: Initialize curl");

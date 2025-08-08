@@ -1,13 +1,13 @@
-#include "glib.h"
-#include "glibconfig.h"
 #include "include/api.h"
 #include "include/ui.h"
 #include <gtk/gtk.h>
-#include <string.h>
 
 extern Account *account;
 extern Favo *favo_s;
+Import *import;
+int Import_method = 2;
 GtkWidget *Box_favo;
+GtkWidget *Entry_id, *Entry_p;
 
 const char *PATH_AVATAR = "bilimusic/avatar.jpg";
 
@@ -15,6 +15,50 @@ gboolean api_import_favo_init(GtkWidget *btn_add, gpointer data)
 {
     g_thread_new("import-favo", (GThreadFunc)api_import_favo, data);
     return FALSE;
+}
+
+gboolean api_import_manually_init()
+{
+    const char *id = gtk_editable_get_text(GTK_EDITABLE(Entry_id));
+    const char *p = gtk_editable_get_text(GTK_EDITABLE(Entry_p));
+    if (!strcmp(id, "")) {
+        puts("Error: id is empty");
+        return FALSE;
+    }
+    if (Import_method == 2) {
+        puts("Error: Import method no selected");
+        return FALSE;
+    }
+
+    import = malloc(sizeof(Import));
+
+    if (Import_method == 1) {
+        import->favo_id = strdup(id);
+        import->bvid = NULL;
+        import->p = NULL;
+    } else {
+        if (!strcmp(p, "")) {
+            puts("Error: p is empty");
+            return FALSE;
+        }
+        import->p = strdup(p);
+        import->bvid = strdup(id);
+        import->favo_id = NULL;
+    }
+    g_thread_new("import-manually", (GThreadFunc)api_import_manually, GINT_TO_POINTER(Import_method));
+
+    return FALSE;
+}
+
+// method: 1: 收藏夹 0: Bvid
+void change_import_method(GtkWidget *ckbox)
+{
+    const char *label = gtk_check_button_get_label(GTK_CHECK_BUTTON(ckbox));
+    if (!strcmp(label, "Bvid")) {
+        Import_method = 0;
+    } else {
+        Import_method = 1;
+    }
 }
 
 gboolean api_get_favo_update_widget()
@@ -42,7 +86,7 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     GtkWidget *box_source, *box_account, *box_btn, *center_box;
     GtkWidget *img_avatar, *label_info, *btn_login, *btn_refresh;
     GtkWidget *label_method, *box_ckbox, *ckbox_favo, *ckbox_bvid;
-    GtkWidget *box_load, *label_load, *box_entry, *entry_id, *entry_p, *box_btn_load, *btn_load, *label_path;
+    GtkWidget *box_load, *label_load, *box_entry, *box_btn_load, *btn_load, *label_path;
     GtkWidget *scroll_favo;
     GtkCssProvider *provider;
 
@@ -98,16 +142,16 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     box_load = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     box_btn_load = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     box_entry = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    label_load = gtk_label_new("收藏夹/Bvid: \n分p(默认全选): ");
-    entry_id = gtk_entry_new();
-    entry_p = gtk_entry_new();
+    label_load = gtk_label_new("收藏夹/Bvid: \n分p(0: 全选): ");
+    Entry_id = gtk_entry_new();
+    Entry_p = gtk_entry_new();
     btn_load = gtk_button_new_with_label("导入");
     label_path = gtk_label_new("(默认列表)");
     gtk_widget_set_margin_end(btn_load, 8);
     gtk_widget_set_margin_top(btn_load, 8);
     gtk_widget_set_size_request(btn_load, 60, 30);
-    gtk_box_append(GTK_BOX(box_entry), entry_id);
-    gtk_box_append(GTK_BOX(box_entry), entry_p);
+    gtk_box_append(GTK_BOX(box_entry), Entry_id);
+    gtk_box_append(GTK_BOX(box_entry), Entry_p);
     gtk_box_append(GTK_BOX(box_load), label_load);
     gtk_widget_set_margin_top(box_entry, 10);
     gtk_box_append(GTK_BOX(box_load), box_entry);
@@ -136,6 +180,9 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
 
     g_signal_connect(btn_login, "clicked", G_CALLBACK(bili_login), app_bmg);
     g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info_net), NULL);
+    g_signal_connect(btn_load, "clicked", G_CALLBACK(api_import_manually_init), NULL);
+    g_signal_connect(ckbox_bvid, "toggled", G_CALLBACK(change_import_method), NULL);
+    g_signal_connect(ckbox_favo, "toggled", G_CALLBACK(change_import_method), NULL);
 
     return box_source;
 }

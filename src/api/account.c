@@ -2,14 +2,17 @@
 #include "include/ui.h"
 #include <cJSON.h>
 #include <curl/curl.h>
+#include <curl/easy.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 extern Account *account;
 extern Favo *favo_s;
+extern FavoJson *favo_json;
 extern GtkWidget *Box_favo;
+extern Import *import;
 CURL *Curl_bili;
 
 // 获取收藏夹列表
@@ -21,6 +24,7 @@ const char *API_GET_BASIC_INFO = "https://api.bilibili.com/x/web-interface/nav";
 
 const char *PATH_ACCOUNT = "./bilimusic/account.json";
 static const char *PATH_AVATAR = "./bilimusic/avatar.jpg";
+const char *DIR_FAVO = "./bilimusic/favo/";
 
 void api_init()
 {
@@ -44,9 +48,87 @@ char *int_to_str(long num)
     return ret;
 }
 
+int api_import_favo_write(int inx)
+{
+    mkdir(DIR_FAVO, S_IRWXU | S_IRWXG | S_IRWXO);
+    char *path_favo = (char *)malloc((strlen(favo_s->id[inx]) + 23) * sizeof(char));
+    sprintf(path_favo, "%s%s.json", DIR_FAVO, favo_s->id[inx]);
+
+    FILE *file = fopen(path_favo, "w+");
+    if (file == NULL) {
+        printf("Error: oepn file(%s) is NULL \n", path_favo);
+        return 1;
+    }
+    printf("INFO: Save favo to %s\n", path_favo);
+
+    cJSON *root, *favos;
+    root = cJSON_CreateObject();
+    favos = cJSON_AddArrayToObject(root, "favo");
+
+    for (int i = 0; i < favo_json->num; i++) {
+        cJSON *favo = cJSON_CreateObject();
+
+        cJSON_AddItemToObject(favo, "bvid", cJSON_CreateString(favo_json->bvid[i]));
+        cJSON_AddItemToObject(favo, "title", cJSON_CreateString(favo_json->title[i]));
+        cJSON_AddItemToObject(favo, "upper_name", cJSON_CreateString(favo_json->upper_name[i]));
+        cJSON_AddItemToObject(favo, "page", cJSON_CreateString(favo_json->page[i]));
+        cJSON_AddItemToArray(favos, favo);
+    }
+    fprintf(file, "%s", cJSON_Print(root));
+
+    fclose(file);
+    cJSON_Delete(root);
+    return 0;
+}
+
 size_t api_import_favo_finish(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *res = (char *)buffer;
+    cJSON *data, *medias, *media, *title, *page, *upper, *upper_name, *bvid;
+
+    cJSON *res_json = cJSON_Parse(res);
+    data = cJSON_GetObjectItemCaseSensitive(res_json, "data");
+    if (data == NULL) {
+        cJSON_Delete(res_json);
+        return 1;
+    }
+    medias = cJSON_GetObjectItemCaseSensitive(data, "medias");
+    if (medias == NULL) {
+        cJSON_Delete(res_json);
+        return 1;
+    }
+
+    int inx = favo_json->num;
+    cJSON_ArrayForEach(media, medias)
+    {
+        title = cJSON_GetObjectItemCaseSensitive(media, "title");
+        page = cJSON_GetObjectItemCaseSensitive(media, "page");
+        upper = cJSON_GetObjectItemCaseSensitive(media, "upper");
+        upper_name = cJSON_GetObjectItemCaseSensitive(upper, "name");
+        bvid = cJSON_GetObjectItemCaseSensitive(media, "bvid");
+
+        if (!cJSON_IsString(title) || !cJSON_IsString(upper_name) || !cJSON_IsString(bvid) ||
+            !cJSON_IsNumber(page)) {
+            cJSON_Delete(res_json);
+            return 1;
+        }
+
+        char *page_str = int_to_str((long)page->valuedouble);
+        favo_json->title = (char **)realloc(favo_json->title, (inx + 1) * sizeof(char *));
+        favo_json->upper_name = (char **)realloc(favo_json->upper_name, (inx + 1) * sizeof(char *));
+        favo_json->page = (char **)realloc(favo_json->page, (inx + 1) * sizeof(char *));
+        favo_json->bvid = (char **)realloc(favo_json->bvid, (inx + 1) * sizeof(char *));
+
+        favo_json->title[inx] = strdup(title->valuestring);
+        favo_json->upper_name[inx] = strdup(upper_name->valuestring);
+        favo_json->page[inx] = strdup(page_str);
+        favo_json->bvid[inx] = strdup(bvid->valuestring);
+
+        inx++;
+    }
+    favo_json->num = inx;
+
+    cJSON_Delete(res_json);
 
     return size;
 }
@@ -65,6 +147,7 @@ gboolean api_import_favo(gpointer data)
                 (char *)malloc((strlen(API_GET_FAVO_INFO) + strlen(favo_s->id[inx]) + 12) * sizeof(char));
             sprintf(url_signal_favo, "%s%s&pn=%d&ps=40", API_GET_FAVO_INFO, favo_s->id[inx], i);
 
+            printf("INFO: Import %s\n", favo_s->title[inx]);
             printf("INFO: Get(%d/%d) %s\n", i, total_pg, url_signal_favo);
             curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_import_favo_finish);
             curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
@@ -72,9 +155,74 @@ gboolean api_import_favo(gpointer data)
             curl_easy_perform(Curl_bili);
         }
     }
+    curl_easy_cleanup(Curl_bili);
+    api_import_favo_write(inx);
+
+    return FALSE;
+}
+
+size_t api_import_man_favo_finish(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+    char *res_str = (char *)buffer;
+    cJSON *res_json = cJSON_Parse(res_str);
+    cJSON *data, *info, *title, *media_count;
+
+    data = cJSON_GetObjectItemCaseSensitive(res_json, "data");
+    info = cJSON_GetObjectItemCaseSensitive(data, "info");
+    title = cJSON_GetObjectItemCaseSensitive(info, "title");
+    media_count = cJSON_GetObjectItemCaseSensitive(info, "media_count");
+    if (!cJSON_IsString(title) || !cJSON_IsNumber(media_count)) {
+        cJSON_Delete(res_json);
+        return 1;
+    }
+
+    // 将手动导入的收藏夹添加到 favo_s
+    int inx = favo_s->inx;
+    favo_s->id = (char **)realloc(favo_s->id, inx * sizeof(char *));
+    favo_s->title = (char **)realloc(favo_s->title, inx * sizeof(char *));
+    favo_s->media_count = (char **)realloc(favo_s->media_count, inx * sizeof(char *));
+
+    favo_s->id[inx] = strdup(import->favo_id);
+    favo_s->title[inx] = strdup(title->valuestring);
+    char *media_count_str = int_to_str((long)media_count->valuedouble);
+    favo_s->media_count[inx] = strdup(media_count_str);
+
+    api_import_favo(GINT_TO_POINTER(inx));
+
+    cJSON_Delete(res_json);
+    free(media_count_str);
+    return size;
+}
+
+gboolean api_import_manually(gpointer method_p)
+{
+    int method = GPOINTER_TO_INT(method_p);
+    Curl_bili = curl_easy_init();
+    if (!Curl_bili) {
+        puts("Error: Init Curl_bili error");
+        return FALSE;
+    }
+
+    if (method) {
+        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
+        char *url_import_favo =
+            (char *)malloc((strlen(API_GET_FAVO_INFO) + strlen(import->favo_id) + 12) * sizeof(char));
+        sprintf(url_import_favo, "%s%s&pn=1&ps=40", API_GET_FAVO_INFO, import->favo_id);
+
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_import_man_favo_finish);
+        curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
+        curl_easy_setopt(Curl_bili, CURLOPT_URL, url_import_favo);
+        curl_easy_perform(Curl_bili);
+
+        free(cookie);
+        free(url_import_favo);
+
+    } else {
+        // TODO: 完成 bvid 导入
+    }
 
     curl_easy_cleanup(Curl_bili);
-
     return FALSE;
 }
 

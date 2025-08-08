@@ -12,6 +12,12 @@ typedef struct {
 } Account;
 
 typedef struct {
+    char *bvid;
+    char *favo_id;
+    char *p;
+} Import;
+
+typedef struct {
     char **id;
     char **title;
     char **media_count;
