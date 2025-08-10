@@ -15,7 +15,9 @@ void ui_main(GtkApplication *app_bmg)
     GtkWidget *win_main;
     GtkWidget *header_bar, *btn_menu_setting;
     GtkWidget *box_main, *paned, *stack, *stack_sidebar;
-    GtkWidget *box_home;
+    GtkWidget *box_home, *centerbox_home;
+    GtkWidget *notebook_media_switch;
+    GtkWidget *box_music, *box_favo, *entry_home;
 
     account = malloc(sizeof(Account));
     favo_s = malloc(sizeof(Favo));
@@ -25,7 +27,6 @@ void ui_main(GtkApplication *app_bmg)
     favo_s->inx = 0;
     favo_json = malloc(sizeof(FavoJson));
     favo_json->bvid = NULL;
-    favo_json->page = NULL;
     favo_json->title = NULL;
     favo_json->upper_name = NULL;
     favo_json->num = 0;
@@ -47,6 +48,9 @@ void ui_main(GtkApplication *app_bmg)
 
     box_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     box_home = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    centerbox_home = gtk_center_box_new();
+    box_music = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    box_favo = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 
     paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     stack = gtk_stack_new();
@@ -55,8 +59,19 @@ void ui_main(GtkApplication *app_bmg)
     gtk_widget_set_vexpand(stack, TRUE);
     stack_sidebar = gtk_stack_sidebar_new();
 
-    GtkWidget *label_home = gtk_label_new("Home");
-    gtk_box_append(GTK_BOX(box_home), label_home);
+    notebook_media_switch = gtk_notebook_new();
+    gtk_widget_set_hexpand(notebook_media_switch, TRUE);
+    gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook_media_switch), TRUE);
+    entry_home = gtk_search_entry_new();
+    gtk_widget_set_margin_start(entry_home, 10);
+    gtk_widget_set_margin_end(entry_home, 10);
+    GtkWidget *label_music = gtk_label_new("默认列表");
+    GtkWidget *label_favo = gtk_label_new("收藏夹");
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook_media_switch), box_music, label_music);
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook_media_switch), box_favo, label_favo);
+    gtk_center_box_set_start_widget(GTK_CENTER_BOX(centerbox_home), notebook_media_switch);
+    gtk_center_box_set_end_widget(GTK_CENTER_BOX(centerbox_home), entry_home);
+    gtk_box_append(GTK_BOX(box_home), centerbox_home);
 
     gtk_stack_add_titled(GTK_STACK(stack), box_home, "box-home", "曲目");
     gtk_stack_add_titled(GTK_STACK(stack), ui_source(app_bmg), "box-source", "音乐源");

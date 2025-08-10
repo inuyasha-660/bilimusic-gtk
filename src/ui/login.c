@@ -48,7 +48,7 @@ void get_cookie(WebKitCookieManager *cookie_mgr, GAsyncResult *res)
     }
     g_list_free(cookit_ls);
 
-    api_get_basic_info_net();
+    api_get_basic_info();
 }
 
 void load_changed(GtkWidget *widget)

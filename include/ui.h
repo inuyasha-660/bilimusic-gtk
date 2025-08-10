@@ -28,3 +28,4 @@ void ui_main(GtkApplication *app_bmg);
 GtkWidget *ui_source(GtkApplication *app_bmg);
 void bili_login(GtkWidget *widget, gpointer app);
 gboolean api_get_favo_update_widget();
+gboolean api_import_update_widget(gpointer log_g);

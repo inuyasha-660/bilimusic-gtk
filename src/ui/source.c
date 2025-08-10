@@ -1,3 +1,6 @@
+#include "glib-object.h"
+#include "glib.h"
+#include "glibconfig.h"
 #include "include/api.h"
 #include "include/ui.h"
 #include <gtk/gtk.h>
@@ -8,8 +11,7 @@ Import *import;
 int Import_method = 2;
 GtkWidget *Box_favo;
 GtkWidget *Entry_id, *Entry_p;
-
-const char *PATH_AVATAR = "bilimusic/avatar.jpg";
+GtkWidget *Revealer_log, *Label_log;
 
 gboolean api_import_favo_init(GtkWidget *btn_add, gpointer data)
 {
@@ -81,12 +83,23 @@ gboolean api_get_favo_update_widget()
     return FALSE;
 }
 
+gboolean api_import_update_widget(gpointer log_g)
+{
+    char *log = (char *)log_g;
+    gtk_revealer_set_reveal_child(GTK_REVEALER(Revealer_log), TRUE);
+    gtk_label_set_text(GTK_LABEL(Label_log), log);
+    return FALSE;
+}
+
+void api_import_change_to_hide() { gtk_revealer_set_reveal_child(GTK_REVEALER(Revealer_log), FALSE); }
+
 GtkWidget *ui_source(GtkApplication *app_bmg)
 {
     GtkWidget *box_source, *box_account, *box_btn, *center_box;
     GtkWidget *img_avatar, *label_info, *btn_login, *btn_refresh;
     GtkWidget *label_method, *box_ckbox, *ckbox_favo, *ckbox_bvid;
     GtkWidget *box_load, *label_load, *box_entry, *box_btn_load, *btn_load, *label_path;
+    GtkWidget *box_log, *btn_log_close;
     GtkWidget *scroll_favo;
     GtkCssProvider *provider;
 
@@ -96,8 +109,10 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     box_btn = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     Box_favo = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     scroll_favo = gtk_scrolled_window_new();
+    Revealer_log = gtk_revealer_new();
+    box_log = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 20);
 
-    gtk_widget_set_margin_top(scroll_favo, 20);
+    gtk_widget_set_margin_top(scroll_favo, 10);
     gtk_widget_set_margin_end(scroll_favo, 20);
     gtk_widget_set_margin_start(scroll_favo, 20);
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll_favo), Box_favo);
@@ -139,6 +154,16 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     gtk_box_append(GTK_BOX(box_ckbox), ckbox_bvid);
     gtk_box_append(GTK_BOX(box_ckbox), ckbox_favo);
 
+    Label_log = gtk_label_new("");
+    btn_log_close = gtk_button_new_from_icon_name("window-close");
+    gtk_box_append(GTK_BOX(box_log), Label_log);
+    gtk_box_append(GTK_BOX(box_log), btn_log_close);
+    gtk_revealer_set_child(GTK_REVEALER(Revealer_log), box_log);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(Revealer_log), FALSE);
+    gtk_widget_set_margin_start(Revealer_log, 20);
+    gtk_widget_set_margin_end(Revealer_log, 20);
+    gtk_widget_set_name(Revealer_log, "revealer-log");
+
     box_load = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     box_btn_load = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     box_entry = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
@@ -163,6 +188,7 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     gtk_center_box_set_center_widget(GTK_CENTER_BOX(center_box), box_ckbox);
     gtk_center_box_set_end_widget(GTK_CENTER_BOX(center_box), box_load);
     gtk_box_append(GTK_BOX(box_source), center_box);
+    gtk_box_append(GTK_BOX(box_source), Revealer_log);
     gtk_box_append(GTK_BOX(box_source), scroll_favo);
 
     gtk_widget_set_name(label_info, "label-info");
@@ -174,15 +200,19 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
                                                 " #sinal-favo {"
                                                 " font-size: 20px;"
                                                 " min-height: 45px;"
-                                                " }");
+                                                " }"
+                                                " #revealer-log {"
+                                                "  background: #44403b;"
+                                                "}");
     gtk_style_context_add_provider_for_display(gdk_display_get_default(), GTK_STYLE_PROVIDER(provider),
                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(btn_login, "clicked", G_CALLBACK(bili_login), app_bmg);
-    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info_net), NULL);
+    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info), NULL);
     g_signal_connect(btn_load, "clicked", G_CALLBACK(api_import_manually_init), NULL);
     g_signal_connect(ckbox_bvid, "toggled", G_CALLBACK(change_import_method), NULL);
     g_signal_connect(ckbox_favo, "toggled", G_CALLBACK(change_import_method), NULL);
+    g_signal_connect(btn_log_close, "clicked", G_CALLBACK(api_import_change_to_hide), NULL);
 
     return box_source;
 }
