@@ -28,6 +28,7 @@ typedef struct {
 
 int api_parse_account();
 void api_init();
+char *read_file(const char *filename);
 int is_file_exists(const char *filename);
 gboolean api_get_favo();
 int api_get_basic_info();

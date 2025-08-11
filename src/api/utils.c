@@ -51,6 +51,30 @@ int is_file_exists(const char *filename)
     }
 }
 
+char *read_file(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error: Open %s fail\n", filename);
+        return NULL;
+    }
+    fseek(file, 0L, SEEK_END);
+    long size = ftell(file);
+    char *ret = (char *)malloc((size + 1) * sizeof(char));
+    fseek(file, 0L, SEEK_SET);
+
+    int inx = 0;
+    int ch;
+    while ((ch = fgetc(file)) != EOF) {
+        ret[inx] = ch;
+        inx++;
+    }
+    ret[inx] = '\0';
+    fclose(file);
+
+    return ret;
+}
+
 size_t api_curl_finish(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     size_t len_buffer = size * nmemb;

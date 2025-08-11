@@ -50,20 +50,35 @@ int api_import_man_bvid_write(Video *video)
 {
     printf("INFO: Write to %s\n", PATH_MUSIC);
 
+    cJSON *root, *list, *video_item, *pages;
     if (is_file_exists(PATH_MUSIC)) {
-        // todo: 追加 musiclist
-        return 0;
+        char *music = read_file(PATH_MUSIC);
+        if (music == NULL) {
+            return 1;
+        }
+
+        if (!strcmp(music, "")) {
+            printf("Warn: (root)Parse %s is NULL\n", PATH_MUSIC);
+            root = cJSON_CreateObject();
+            list = cJSON_AddArrayToObject(root, "list");
+            goto write;
+        }
+
+        root = cJSON_Parse(music);
+        list = cJSON_GetObjectItemCaseSensitive(root, "list");
+        goto write;
     }
 
+    root = cJSON_CreateObject();
+    list = cJSON_AddArrayToObject(root, "list");
+
+write: {
     FILE *file = fopen(PATH_MUSIC, "w+");
     if (file == NULL) {
         printf("Error: Open %s fail\n", PATH_MUSIC);
         return 1;
     }
 
-    cJSON *list, *video_item, *pages;
-    cJSON *root = cJSON_CreateObject();
-    list = cJSON_AddArrayToObject(root, "list");
     video_item = cJSON_CreateObject();
     pages = cJSON_CreateArray();
 
@@ -71,17 +86,26 @@ int api_import_man_bvid_write(Video *video)
     cJSON_AddItemToObject(video_item, "title", cJSON_CreateString(video->title));
     cJSON_AddItemToObject(video_item, "upper_name", cJSON_CreateString(video->upper_name));
 
+    int p = atoi(import->p);
     for (int i = 0; i < video->pages->inx; i++) {
+        if (p) {
+            if (i != (p - 1)) {
+                continue;
+            }
+        }
+
         cJSON *page = cJSON_CreateObject();
         cJSON_AddItemToObject(page, "cid", cJSON_CreateString(video->pages->cid[i]));
         cJSON_AddItemToObject(page, "part", cJSON_CreateString(video->pages->part[i]));
         cJSON_AddItemToArray(pages, page);
     }
+
     cJSON_AddItemToObject(video_item, "pages", pages);
     cJSON_AddItemToArray(list, video_item);
     fprintf(file, "%s", cJSON_Print(root));
 
     fclose(file);
+}
     cJSON_Delete(root);
     return 0;
 }
