@@ -11,10 +11,12 @@ sid
 ``````
 cookie 保存于``./bilimusic/account.json``
 
-## 导入收藏夹
-手动导入需要确保目标收藏夹是公开的
+## 手动导入
+### 收藏夹
+默认导入全部分p，需确保目标收藏夹公开；数据保存于``./bilimusic/favo/<fid>.json``
 
-所有收藏夹将保存于``./bilimusic/favo/<fid>.json``
+### Bvid
+可选导入分p(0: 全选)，由Bvid导入的音乐保存于``./bilimusic/music.json``
 
 ## 编译
 ### 依赖库
