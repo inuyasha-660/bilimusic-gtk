@@ -74,7 +74,8 @@ void bili_login(GtkWidget *widget, gpointer app)
 
     login_webkit = webkit_web_view_new();
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(login_webkit), "https://passport.bilibili.com/login");
-    gtk_widget_set_size_request(login_webkit, 1300, 800);
+    gtk_widget_set_vexpand(login_webkit, TRUE);
+    gtk_widget_set_hexpand(login_webkit, TRUE);
 
     entry_log = gtk_entry_new();
     btn_finish_login = gtk_button_new_with_label("下一步");
@@ -83,7 +84,7 @@ void bili_login(GtkWidget *widget, gpointer app)
     gtk_widget_set_margin_top(box_log, 10);
     gtk_widget_set_margin_start(box_log, 20);
     gtk_widget_set_margin_end(box_log, 20);
-    gtk_widget_set_size_request(entry_log, 1200, -1);
+    gtk_widget_set_hexpand(entry_log, TRUE);
 
     gtk_box_append(GTK_BOX(box_log), entry_log);
     gtk_box_append(GTK_BOX(box_log), btn_finish_login);

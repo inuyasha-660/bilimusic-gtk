@@ -49,18 +49,21 @@ int api_get_favo_parse(Buffer *buffer_favo)
 gboolean api_get_favo()
 {
     if (!account->islogin) {
+        puts("INFO: No login");
         return FALSE;
     }
 
     Curl_bili = curl_easy_init();
     if (Curl_bili) {
-        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        char *cookie = (char *)malloc((10 + strlen(account->SESSDATA)) * sizeof(char));
         sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
         char *url_favo = (char *)malloc((66 + sizeof(account->mid)) * sizeof(char));
         sprintf(url_favo, "%s%s", API_GET_FAVO, account->mid);
         Buffer *buffer_favo = malloc(sizeof(Buffer));
         buffer_favo->buffer = NULL;
         buffer_favo->length = 0;
+
+        printf("INFO: Get(favo): %s\n", url_favo);
 
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEDATA, buffer_favo);
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_curl_finish);
@@ -71,9 +74,8 @@ gboolean api_get_favo()
 
         free(cookie);
         free(url_favo);
-        return FALSE;
     }
-    curl_easy_cleanup(Curl_bili);
 
+    curl_easy_cleanup(Curl_bili);
     return FALSE;
 }

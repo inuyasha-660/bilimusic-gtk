@@ -24,7 +24,13 @@ typedef struct {
     int inx;
 } Favo;
 
+typedef struct{
+    int i_bvid;
+    int j_part;
+} GetMusic ;
+
 void ui_main(GtkApplication *app_bmg);
+void api_update_music_list();
 GtkWidget *ui_source(GtkApplication *app_bmg);
 void bili_login(GtkWidget *widget, gpointer app);
 gboolean api_get_favo_update_widget();

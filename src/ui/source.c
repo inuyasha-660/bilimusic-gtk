@@ -1,4 +1,3 @@
-#include "glib-object.h"
 #include "glib.h"
 #include "glibconfig.h"
 #include "include/api.h"
@@ -52,6 +51,12 @@ gboolean api_import_manually_init()
     return FALSE;
 }
 
+gboolean api_get_basic_info_init()
+{
+    g_thread_new("get-basic-info", (GThreadFunc)api_get_basic_info, NULL);
+    return FALSE;
+}
+
 // method: 1: 收藏夹 0: Bvid
 void change_import_method(GtkWidget *ckbox)
 {
@@ -65,6 +70,11 @@ void change_import_method(GtkWidget *ckbox)
 
 gboolean api_get_favo_update_widget()
 {
+    GtkWidget *child;
+    while ((child = gtk_widget_get_first_child(Box_favo))) {
+        gtk_box_remove(GTK_BOX(Box_favo), child);
+    }
+
     for (int i = 0; i < favo_s->inx; i++) {
         GtkWidget *box_signal_favo = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 20);
         GtkWidget *btn_add = gtk_button_new_from_icon_name("list-add");
@@ -118,7 +128,7 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll_favo), Box_favo);
     gtk_widget_set_vexpand(scroll_favo, TRUE);
 
-    puts("INFO: Create a new thread to get favorites");
+    puts("INFO: thread[get-favo]: get favorites");
     g_thread_new("get-favo", (GThreadFunc)api_get_favo, NULL);
 
     if (account->islogin) {
@@ -202,13 +212,22 @@ GtkWidget *ui_source(GtkApplication *app_bmg)
                                                 " min-height: 45px;"
                                                 " }"
                                                 " #revealer-log {"
-                                                "  background: #44403b;"
-                                                "}");
+                                                " background: #63452c;"
+                                                " }"
+                                                " #btn-musiclist {"
+                                                " min-height: 40px;"
+                                                " }"
+                                                " #label-musictitle {"
+                                                " font-size: 18px;"
+                                                " }"
+                                                " #label-musicuppername {"
+                                                " font-size: 18px;"
+                                                " }");
     gtk_style_context_add_provider_for_display(gdk_display_get_default(), GTK_STYLE_PROVIDER(provider),
                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     g_signal_connect(btn_login, "clicked", G_CALLBACK(bili_login), app_bmg);
-    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info), NULL);
+    g_signal_connect(btn_refresh, "clicked", G_CALLBACK(api_get_basic_info_init), NULL);
     g_signal_connect(btn_load, "clicked", G_CALLBACK(api_import_manually_init), NULL);
     g_signal_connect(ckbox_bvid, "toggled", G_CALLBACK(change_import_method), NULL);
     g_signal_connect(ckbox_favo, "toggled", G_CALLBACK(change_import_method), NULL);

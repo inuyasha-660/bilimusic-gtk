@@ -12,6 +12,8 @@ const char *API_GET_FAVO_INFO = "https://api.bilibili.com/x/v3/fav/resource/list
 const char *API_GET_BASIC_INFO = "https://api.bilibili.com/x/web-interface/nav";
 // 获取视频信息
 const char *API_GET_VIDEO_INFO = "https://api.bilibili.com/x/web-interface/view?bvid=";
+// 获取音频流
+const char *API_GET_STREAM = "https://api.bilibili.com/x/player/playurl?bvid=";
 
 const char *PATH_ACCOUNT = "./bilimusic/account.json";
 const char *PATH_AVATAR = "./bilimusic/avatar.jpg";

@@ -4,9 +4,6 @@
 #include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/ucontext.h>
 
 extern Account *account;
 extern Favo *favo_s;
@@ -169,7 +166,7 @@ gboolean api_import_manually(gpointer method_p)
         return FALSE;
     }
 
-    char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+    char *cookie = (char *)malloc((10 + strlen(account->SESSDATA)) * sizeof(char));
     sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
     if (method) {
         char *url_import_favo =

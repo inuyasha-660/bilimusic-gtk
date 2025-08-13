@@ -1,3 +1,4 @@
+#include "glib.h"
 #include <gtk/gtk.h>
 #include <stddef.h>
 
@@ -26,16 +27,23 @@ typedef struct {
     Pages *pages;
 } Video;
 
+typedef struct {
+    int inx;
+    Video **video;
+} List;
+
 int api_parse_account();
 void api_init();
 char *read_file(const char *filename);
 int is_file_exists(const char *filename);
+gboolean api_read_music_list();
 gboolean api_get_favo();
 int api_get_basic_info();
 gboolean api_import_favo(gpointer data);
 gboolean api_import_manually(gpointer method_p);
 char *int_to_str(long num);
 size_t api_curl_finish(void *buffer, size_t size, size_t nmemb, void *userp);
+int api_get_music(gpointer get_video_p);
 
 #ifndef API_H
 #define API_H
@@ -44,6 +52,7 @@ extern const char *API_GET_FAVO;
 extern const char *API_GET_FAVO_INFO;
 extern const char *API_GET_BASIC_INFO;
 extern const char *API_GET_VIDEO_INFO;
+extern const char *API_GET_STREAM;
 
 extern const char *PATH_ACCOUNT;
 extern const char *PATH_AVATAR;

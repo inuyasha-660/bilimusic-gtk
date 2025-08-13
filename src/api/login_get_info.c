@@ -16,7 +16,7 @@ void api_get_avatar()
         puts("Error: account->face is NULL");
         return;
     }
-    printf("INFO: Get %s\n", account->face);
+
     Curl_bili = curl_easy_init();
     if (Curl_bili) {
         FILE *img_f = fopen(PATH_AVATAR, "wb");
@@ -28,7 +28,7 @@ void api_get_avatar()
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEDATA, img_f);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, account->face);
 
-        printf("INFO: Get(Avatar): %s", account->face);
+        printf("INFO: Get(Avatar): %s\n", account->face);
         res = curl_easy_perform(Curl_bili);
         if (res != CURLE_OK) {
             printf("-> Failed(%d)\n", res);
@@ -120,21 +120,29 @@ int api_get_basic_info()
     Curl_bili = curl_easy_init();
     if (Curl_bili) {
         int res;
-        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        char *cookie = (char *)malloc((10 + strlen(account->SESSDATA)) * sizeof(char));
         sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
         Buffer *buffer_info = malloc(sizeof(Buffer));
         buffer_info->buffer = NULL;
         buffer_info->length = 0;
 
-        printf("INFO: Get(Basic information): %s", API_GET_BASIC_INFO);
+        printf("INFO: Get(Basic information): %s\n", API_GET_BASIC_INFO);
         curl_easy_setopt(Curl_bili, CURLOPT_WRITEFUNCTION, &api_curl_finish);
+        curl_easy_setopt(Curl_bili, CURLOPT_WRITEDATA, buffer_info);
         curl_easy_setopt(Curl_bili, CURLOPT_COOKIE, cookie);
         curl_easy_setopt(Curl_bili, CURLOPT_URL, API_GET_BASIC_INFO);
         res = curl_easy_perform(Curl_bili);
+        if (res != CURLE_OK) {
+            printf("INFO: Get account info err(%d)\n", res);
+            return 1;
+        }
+
         api_get_basic_info_parse(buffer_info);
 
         curl_easy_cleanup(Curl_bili);
         free(cookie);
+        free(buffer_info->buffer);
+        free(buffer_info);
         return res;
     }
 

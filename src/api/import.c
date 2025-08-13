@@ -1,4 +1,3 @@
-#include "glib.h"
 #include "include/api.h"
 #include "include/ui.h"
 #include <cJSON.h>
@@ -52,12 +51,12 @@ Pages *api_import_get_part_parse(Buffer *buffer_part)
 
 Pages *api_import_favo_get_part(char *bvid)
 {
-    char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+    char *cookie = (char *)malloc((10 + strlen(account->SESSDATA)) * sizeof(char));
     sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
     CURL *curl_part = curl_easy_init();
     Pages *pages_s;
 
-    if (Curl_bili) {
+    if (curl_part) {
         char *url_bvid = (char *)malloc((strlen(API_GET_VIDEO_INFO) + strlen(bvid)) * sizeof(char));
         sprintf(url_bvid, "%s%s", API_GET_VIDEO_INFO, bvid);
         Buffer *buffer_part = malloc(sizeof(Buffer));
@@ -194,7 +193,7 @@ gboolean api_import_favo(gpointer data)
     if (Curl_bili) {
         int total_pg = (int)ceil(atoi(favo_s->media_count[inx]) / 40.0);
 
-        char *cookie = (char *)malloc(10 + strlen(account->SESSDATA));
+        char *cookie = (char *)malloc((10 + strlen(account->SESSDATA)) * sizeof(char));
         sprintf(cookie, "SESSDATA=%s", account->SESSDATA);
         char *log_favo =
             (char *)malloc((strlen("导入收藏夹: ") + strlen(favo_s->id[inx]) + 1) * sizeof(char));
