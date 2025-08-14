@@ -1,4 +1,3 @@
-#include "glib.h"
 #include <gtk/gtk.h>
 #include <stddef.h>
 
@@ -32,6 +31,21 @@ typedef struct {
     Video **video;
 } List;
 
+enum Quality {
+    Q64K = 30216,
+    Q132K = 30232,
+    Q192K = 30280,
+    QDOLBY = 30250,
+    QHIRES = 30251
+};
+
+typedef struct{
+    int i_bvid;
+    int j_part;
+    char *filename;
+    char *title;
+} GetMusic;
+
 int api_parse_account();
 void api_init();
 char *read_file(const char *filename);
@@ -43,7 +57,8 @@ gboolean api_import_favo(gpointer data);
 gboolean api_import_manually(gpointer method_p);
 char *int_to_str(long num);
 size_t api_curl_finish(void *buffer, size_t size, size_t nmemb, void *userp);
-int api_get_music(gpointer get_video_p);
+int api_get_music(GetMusic *get_music);
+void api_play_from_filename(gpointer get_music_p);
 
 #ifndef API_H
 #define API_H
@@ -54,9 +69,13 @@ extern const char *API_GET_BASIC_INFO;
 extern const char *API_GET_VIDEO_INFO;
 extern const char *API_GET_STREAM;
 
+extern const char *USER_AGENT;
+extern const char *REFERER;
+
 extern const char *PATH_ACCOUNT;
 extern const char *PATH_AVATAR;
 extern const char *DIR_FAVO;
 extern const char *PATH_MUSIC;
+extern const char *PATH_CACHE;
 
 #endif

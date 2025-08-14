@@ -46,6 +46,7 @@ Pages *api_import_get_part_parse(Buffer *buffer_part)
     }
     pages_s->inx = inx;
 
+    cJSON_Delete(res_json);
     return pages_s;
 }
 

@@ -1,3 +1,4 @@
+#include "glib-object.h"
 #include "include/api.h"
 #include "include/ui.h"
 #include <gtk/gtk.h>
@@ -12,6 +13,9 @@ Favo *favo_s;
 FavoJson *favo_json;
 List *list_default;
 GtkWidget *Box_list_music, *CenBox_search;
+GtkWidget *Medeia_control, *Label_name;
+char *Title;
+int Quality = Q192K;
 
 static void init_account_favo()
 {
@@ -51,9 +55,40 @@ void switch_revealer_status(GtkWidget *btn, gpointer revealer)
     gtk_revealer_set_reveal_child(GTK_REVEALER(revealer_part), !status);
 }
 
-static gboolean api_get_music_init(GtkWidget *btn_get, gpointer get_video_p)
+void api_play_from_filename(gpointer get_music_p)
 {
-    g_thread_new("get-music", (GThreadFunc)api_get_music, get_video_p);
+    GetMusic *get_music = (GetMusic *)get_music_p;
+    GtkMediaStream *media_stream = gtk_media_file_new_for_filename(get_music->filename);
+    gtk_media_stream_play(media_stream);
+    gtk_media_controls_set_media_stream(GTK_MEDIA_CONTROLS(Medeia_control), media_stream);
+}
+
+static gboolean api_get_music_init(GtkWidget *btn_get, gpointer get_music_p)
+{
+
+    GetMusic *get_music = (GetMusic *)get_music_p;
+    GtkMediaStream *stream_old = gtk_media_controls_get_media_stream(GTK_MEDIA_CONTROLS(Medeia_control));
+    if (stream_old != NULL) {
+        gtk_media_stream_set_playing(stream_old, FALSE);
+        g_object_unref(stream_old);
+    }
+    gtk_label_set_text(GTK_LABEL(Label_name), get_music->title);
+
+    size_t len_filename = strlen(PATH_CACHE) + strlen(list_default->video[get_music->i_bvid]->bvid) + 6 +
+                          strlen(list_default->video[get_music->i_bvid]->pages->cid[get_music->j_part]);
+    char *filename = (char *)malloc((len_filename + 1) * sizeof(char));
+    sprintf(filename, "%s%s-%s-%d.m4s", PATH_CACHE, list_default->video[get_music->i_bvid]->bvid,
+            list_default->video[get_music->i_bvid]->pages->cid[get_music->j_part], Quality);
+
+    get_music->filename = strdup(filename);
+    if (is_file_exists(filename)) {
+        g_idle_add((GSourceFunc)api_play_from_filename, get_music);
+        return FALSE;
+    }
+
+    get_music->filename = strdup(filename);
+    free(filename);
+    g_thread_new("get-music", (GThreadFunc)api_get_music, get_music);
     return FALSE;
 }
 
@@ -104,9 +139,16 @@ void api_update_music_list()
             gtk_button_set_child(GTK_BUTTON(btn_music_part), cbox_music_part);
 
             GetMusic *get_music = malloc(sizeof(GetMusic));
+            get_music->filename = NULL;
+            get_music->title = NULL;
             get_music->i_bvid = i;
             get_music->j_part = j;
 
+            size_t len_music_info = strlen(info_part) + strlen(info_uppername);
+            char *music_info = (char *)malloc((len_music_info + 4) * sizeof(char));
+            sprintf(music_info, "%s - %s", info_part, info_uppername);
+
+            get_music->title = strdup(music_info);
             g_signal_connect(btn_music_part, "clicked", G_CALLBACK(api_get_music_init), get_music);
 
             gtk_box_append(GTK_BOX(box_music_part_main), btn_music_part);
@@ -115,6 +157,7 @@ void api_update_music_list()
                 gtk_box_append(GTK_BOX(box_music_part_main), separator);
             }
 
+            free(music_info);
             free(info_part);
         }
         gtk_revealer_set_child(GTK_REVEALER(revealer_part), box_music_part_main);
@@ -144,6 +187,8 @@ static void update_search_entry(GtkWidget *btn_close_search, gpointer target_p)
     }
 }
 
+static void change_quality(GtkWidget *ckbox, gpointer quality_p) { Quality = GPOINTER_TO_INT(quality_p); }
+
 void ui_main(GtkApplication *app_bmg)
 {
     GtkWidget *win_main;
@@ -151,12 +196,12 @@ void ui_main(GtkApplication *app_bmg)
     GtkWidget *header_bar, *btn_search, *btn_menu_setting, *popover_setting, *box_setting;
     GtkWidget *box_tq, *ckbox_tq_64K, *ckbox_tq_132K, *ckbox_tq_192K, *ckbox_tq_dolby, *ckbox_tq_HiRes;
     GtkWidget *box_home;
-    GtkWidget *medeia_control;
     GtkWidget *box_ckbox_s;
     GtkWidget *ckbox_s_title, *ckbox_s_uppername, *ckbox_s_favo, *entry_home, *btn_close_search;
     GtkWidget *notebook_media_switch;
     GtkWidget *box_music, *box_favo;
     GtkWidget *scrolled_music;
+    GtkWidget *box_music_control;
 
     init_account_favo();
 
@@ -183,6 +228,12 @@ void ui_main(GtkApplication *app_bmg)
     gtk_check_button_set_group(GTK_CHECK_BUTTON(ckbox_tq_192K), GTK_CHECK_BUTTON(ckbox_tq_64K));
     gtk_check_button_set_group(GTK_CHECK_BUTTON(ckbox_tq_dolby), GTK_CHECK_BUTTON(ckbox_tq_64K));
     gtk_check_button_set_group(GTK_CHECK_BUTTON(ckbox_tq_HiRes), GTK_CHECK_BUTTON(ckbox_tq_64K));
+
+    g_signal_connect(ckbox_tq_64K, "toggled", G_CALLBACK(change_quality), GINT_TO_POINTER(Q64K));
+    g_signal_connect(ckbox_tq_132K, "toggled", G_CALLBACK(change_quality), GINT_TO_POINTER(Q132K));
+    g_signal_connect(ckbox_tq_192K, "toggled", G_CALLBACK(change_quality), GINT_TO_POINTER(Q192K));
+    g_signal_connect(ckbox_tq_dolby, "toggled", G_CALLBACK(change_quality), GINT_TO_POINTER(QDOLBY));
+    g_signal_connect(ckbox_tq_HiRes, "toggled", G_CALLBACK(change_quality), GINT_TO_POINTER(QHIRES));
 
     gtk_box_append(GTK_BOX(box_tq), ckbox_tq_64K);
     gtk_box_append(GTK_BOX(box_tq), ckbox_tq_132K);
@@ -257,11 +308,18 @@ void ui_main(GtkApplication *app_bmg)
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scrolled_music), Box_list_music);
     gtk_widget_set_vexpand(scrolled_music, TRUE);
     gtk_box_append(GTK_BOX(box_music), scrolled_music);
-    medeia_control = gtk_media_controls_new(NULL);
-    gtk_widget_set_margin_bottom(medeia_control, 10);
-    gtk_widget_set_margin_end(medeia_control, 10);
-    gtk_widget_set_margin_start(medeia_control, 10);
-    gtk_box_append(GTK_BOX(box_home), medeia_control);
+    Medeia_control = gtk_media_controls_new(NULL);
+    Label_name = gtk_label_new("");
+    gtk_label_set_xalign(GTK_LABEL(Label_name), 0.0);
+    gtk_widget_set_margin_end(Label_name, 10);
+    gtk_widget_set_margin_start(Label_name, 10);
+    gtk_widget_set_margin_bottom(Medeia_control, 10);
+    gtk_widget_set_margin_end(Medeia_control, 10);
+    gtk_widget_set_margin_start(Medeia_control, 10);
+    box_music_control = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_append(GTK_BOX(box_music_control), Label_name);
+    gtk_box_append(GTK_BOX(box_music_control), Medeia_control);
+    gtk_box_append(GTK_BOX(box_home), box_music_control);
 
     init_music();
 

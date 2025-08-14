@@ -25,6 +25,7 @@ int api_parse_account()
 
     if (!cJSON_IsString(mid) || !cJSON_IsString(DedeUserID) || !cJSON_IsString(DedeUserID__ckMd5) ||
         !cJSON_IsString(SESSDATA) || !cJSON_IsString(bili_jct) || !cJSON_IsString(sid)) {
+        cJSON_Delete(json);
         puts("Error: Parse bilimusic/account.json error");
         goto end;
     }

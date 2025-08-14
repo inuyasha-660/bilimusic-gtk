@@ -73,6 +73,7 @@ write: {
     FILE *file = fopen(PATH_MUSIC, "w+");
     if (file == NULL) {
         printf("Error: Open %s fail\n", PATH_MUSIC);
+        cJSON_Delete(root);
         return 1;
     }
 

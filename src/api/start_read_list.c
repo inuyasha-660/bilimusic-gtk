@@ -38,6 +38,7 @@ gboolean api_read_music_list()
         cJSON *title = cJSON_GetObjectItemCaseSensitive(video, "title");
         cJSON *upper_name = cJSON_GetObjectItemCaseSensitive(video, "upper_name");
         if (!cJSON_IsString(bvid) || !cJSON_IsString(title) || !cJSON_IsString(upper_name)) {
+            cJSON_Delete(root);
             printf("Error: Read %s err(2)\n", PATH_MUSIC);
             return FALSE;
         }
@@ -75,5 +76,6 @@ gboolean api_read_music_list()
 
     api_update_music_list();
 
+    cJSON_Delete(root);
     return FALSE;
 }

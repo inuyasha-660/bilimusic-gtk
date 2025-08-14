@@ -15,10 +15,14 @@ const char *API_GET_VIDEO_INFO = "https://api.bilibili.com/x/web-interface/view?
 // 获取音频流
 const char *API_GET_STREAM = "https://api.bilibili.com/x/player/playurl?bvid=";
 
+const char *USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0";
+const char *REFERER = "https://www.bilibili.com";
+
 const char *PATH_ACCOUNT = "./bilimusic/account.json";
 const char *PATH_AVATAR = "./bilimusic/avatar.jpg";
 const char *DIR_FAVO = "./bilimusic/favo/";
 const char *PATH_MUSIC = "./bilimusic/music.json";
+const char *PATH_CACHE = "./bilimusic/cache/";
 
 void api_init()
 {
