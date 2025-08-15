@@ -2,7 +2,6 @@
 #include "include/api.h"
 #include "include/ui.h"
 #include <curl/curl.h>
-#include <curl/easy.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -75,14 +74,19 @@ char *api_read_music_json(Buffer *buffer_stream)
                 cJSON_Delete(root);
                 return NULL;
             }
-            return url_audio->valuestring;
 
+            char *url_clone = strdup(url_audio->valuestring);
             cJSON_Delete(root);
-            return 0;
+
+            return url_clone;
         }
     }
 
-    printf("Error: Target sound quality(%d) not found\n", Quality);
+    /* 无法正确获取音频流链接有两种可能
+     * 一是未找到目标音质(非大会员选择了杜比或 Hi-Res 音质)
+     * 二是触发了 BiliBili 的安全风控策略(错误号: 412)
+     */
+    puts("Error: Prase stream error");
 
     cJSON_Delete(root);
     return NULL;
